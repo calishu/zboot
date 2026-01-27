@@ -16,7 +16,6 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.subsystem = .EfiApplication;
-    exe.entry = .{ .symbol_name = "efi_main" };
 
     b.installArtifact(exe);
 }
