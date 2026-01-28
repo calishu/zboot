@@ -1,7 +1,7 @@
 const BootParams = @import("common.zig").BootParams;
 
 // this is a very minimal dummy kernel, just to check if the bootloader works.
-export fn kernel_main(params: *const BootParams) callconv(.c) noreturn {
+export fn _start(params: *const BootParams) callconv(.c) noreturn {
     const color: u32 = 0xFFFF0000; // bright red
     const total_pixels = params.width * params.height;
 
@@ -10,5 +10,5 @@ export fn kernel_main(params: *const BootParams) callconv(.c) noreturn {
         params.fb_ptr[i] = color;
     }
 
-    while (true) { asm volatile("hlt"); }
+    while (true) {}
 }
