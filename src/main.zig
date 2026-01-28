@@ -24,6 +24,7 @@ pub fn main() uefi.Error!void {
         loaded_image.device_handle.?,
     )) orelse return error.NotFound;
 
+    _ = try printUtf16(con_out, "Get the kernel file");
     var root = try fs.openVolume();
 
     var kernel_file = try root.open(
@@ -33,6 +34,7 @@ pub fn main() uefi.Error!void {
     );
 
     // determine file size
+    _ = try printUtf16(con_out, "Determine kernel file size");
     var file_info_buffer: [128]u8 align(@alignOf(uefi.protocol.File.Info)) = undefined;
     // var info_size: usize = file_info_buffer.len;
 
@@ -45,6 +47,7 @@ pub fn main() uefi.Error!void {
     const kernel_size = file_info.file.size;
 
     // get gop
+    _ = try printUtf16(con_out, "Get graphics output protocol");
     var gop: *uefi.protocol.GraphicsOutput = undefined;
     _ = try boot_services.locateProtocol(
         uefi.protocol.GraphicsOutput,
@@ -52,6 +55,7 @@ pub fn main() uefi.Error!void {
     );
 
     // alloc mem for the kernel
+    _ = try printUtf16(con_out, "Allocate memory for the kernel");
     const pages = (kernel_size + 0xfff) / 0x1000;
     const kernel_buffer = try boot_services.allocatePages(
         .any,
@@ -63,6 +67,7 @@ pub fn main() uefi.Error!void {
 
     // load kernel into mem
     // var read_size = kernel_size;
+    _ = try printUtf16(con_out, "Load kernel into memory");
     _ = try kernel_file.read(buffer_as_bytes);
 
     const params = common.BootParams{
