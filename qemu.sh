@@ -10,5 +10,4 @@ qemu-system-x86_64 \
     -drive format=raw,file=fat:rw:img \
     -m 256M \
     -net none \
-    -serial stdio \
-    -s -S
+    -serial stdio
