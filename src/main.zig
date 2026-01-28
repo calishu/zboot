@@ -42,17 +42,10 @@ pub fn main() uefi.Error!void {
         .file,
         &file_info_buffer
     );
+    // if (status != .Success) { return uefi.Error; }
 
     const file_info = @as(*uefi.protocol.File.Info, @ptrCast(&file_info_buffer));
     const kernel_size = file_info.file.size;
-
-    // get gop
-    _ = try printUtf16(con_out, "Get graphics output protocol");
-    var gop: *uefi.protocol.GraphicsOutput = undefined;
-    _ = try boot_services.locateProtocol(
-        uefi.protocol.GraphicsOutput,
-        @ptrCast(&gop),
-    );
 
     // alloc mem for the kernel
     _ = try printUtf16(con_out, "Allocate memory for the kernel");
@@ -65,22 +58,33 @@ pub fn main() uefi.Error!void {
     //const kernel_buffer_addr = @intFromPtr(kernel_buffer.ptr);
     const buffer_as_bytes = std.mem.sliceAsBytes(kernel_buffer);
 
+    // get gop
+    _ = try printUtf16(con_out, "Get graphics output protocol");
+
+    const gop_optional = try boot_services.locateProtocol(
+        uefi.protocol.GraphicsOutput,
+        null,
+    );
+    if (gop_optional == null) {
+        _ = try printUtf16(con_out, "GOP not found in the system");
+        return uefi.Error.NotFound;
+    }
+
+    const params = common.BootParams{
+        .fb_ptr = @ptrFromInt(gop_optional.?.mode.frame_buffer_base),
+        .width = gop_optional.?.mode.info.horizontal_resolution,
+        .height = gop_optional.?.mode.info.vertical_resolution,
+    };
+
     // load kernel into mem
     // var read_size = kernel_size;
     _ = try printUtf16(con_out, "Load kernel into memory");
     _ = try kernel_file.read(buffer_as_bytes);
 
-    const params = common.BootParams{
-        .fb_ptr = @ptrFromInt(gop.mode.frame_buffer_base),
-        .width = gop.mode.info.horizontal_resolution,
-        .height = gop.mode.info.vertical_resolution,
-    };
-
     const KernelEntry = *const fn (*const common.BootParams) callconv(.c) noreturn;
     const entry_point: KernelEntry = @ptrCast(kernel_buffer.ptr);
 
-
-    _ = try printUtf16(con_out, "Jumping to kernel entry point...");
+    _ = try printUtf16(con_out, "Jumping to kernel entry point");
     entry_point(&params); // Bye UEFI, I will miss you :(
     return;
 }
