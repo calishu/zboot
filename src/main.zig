@@ -24,6 +24,7 @@ pub fn main() uefi.Error!void {
         loaded_image.device_handle.?,
     )) orelse return error.NotFound;
 
+    _ = try printUtf16(con_out, "Get the kernel file");
     var root = try fs.openVolume();
 
     var kernel_file = try root.open(
@@ -33,6 +34,7 @@ pub fn main() uefi.Error!void {
     );
 
     // determine file size
+    _ = try printUtf16(con_out, "Determine kernel file size");
     var file_info_buffer: [128]u8 align(@alignOf(uefi.protocol.File.Info)) = undefined;
     // var info_size: usize = file_info_buffer.len;
 
@@ -40,18 +42,13 @@ pub fn main() uefi.Error!void {
         .file,
         &file_info_buffer
     );
+    // if (status != .Success) { return uefi.Error; }
 
     const file_info = @as(*uefi.protocol.File.Info, @ptrCast(&file_info_buffer));
     const kernel_size = file_info.file.size;
 
-    // get gop
-    var gop: *uefi.protocol.GraphicsOutput = undefined;
-    _ = try boot_services.locateProtocol(
-        uefi.protocol.GraphicsOutput,
-        @ptrCast(&gop),
-    );
-
     // alloc mem for the kernel
+    _ = try printUtf16(con_out, "Allocate memory for the kernel");
     const pages = (kernel_size + 0xfff) / 0x1000;
     const kernel_buffer = try boot_services.allocatePages(
         .any,
@@ -61,21 +58,33 @@ pub fn main() uefi.Error!void {
     //const kernel_buffer_addr = @intFromPtr(kernel_buffer.ptr);
     const buffer_as_bytes = std.mem.sliceAsBytes(kernel_buffer);
 
-    // load kernel into mem
-    // var read_size = kernel_size;
-    _ = try kernel_file.read(buffer_as_bytes);
+    // get gop
+    _ = try printUtf16(con_out, "Get graphics output protocol");
+
+    const gop_optional = try boot_services.locateProtocol(
+        uefi.protocol.GraphicsOutput,
+        null,
+    );
+    if (gop_optional == null) {
+        _ = try printUtf16(con_out, "GOP not found in the system");
+        return uefi.Error.NotFound;
+    }
 
     const params = common.BootParams{
-        .fb_ptr = @ptrFromInt(gop.mode.frame_buffer_base),
-        .width = gop.mode.info.horizontal_resolution,
-        .height = gop.mode.info.vertical_resolution,
+        .fb_ptr = @ptrFromInt(gop_optional.?.mode.frame_buffer_base),
+        .width = gop_optional.?.mode.info.horizontal_resolution,
+        .height = gop_optional.?.mode.info.vertical_resolution,
     };
+
+    // load kernel into mem
+    // var read_size = kernel_size;
+    _ = try printUtf16(con_out, "Load kernel into memory");
+    _ = try kernel_file.read(buffer_as_bytes);
 
     const KernelEntry = *const fn (*const common.BootParams) callconv(.c) noreturn;
     const entry_point: KernelEntry = @ptrCast(kernel_buffer.ptr);
 
-
-    _ = try printUtf16(con_out, "Jumping to kernel entry point...");
+    _ = try printUtf16(con_out, "Jumping to kernel entry point");
     entry_point(&params); // Bye UEFI, I will miss you :(
     return;
 }
