@@ -1,4 +1,5 @@
 # zboot
+A minimal and simple x86-64 UEFI bootloader. The main focus for this project is currently of educational purposes for myself, not for real-world use, even tho it could evolve that way.
 > [!CAUTION]
 > This bootloader is still in heavy development, not even really usable. I would heavily advise against the practical use of this bootloader at the current time.
 
