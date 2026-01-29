@@ -24,6 +24,7 @@ pub fn main() uefi.Error!void {
         loaded_image.device_handle.?,
     )) orelse return error.NotFound;
 
+    // get the kernel file
     _ = try printUtf16(con_out, "Get the kernel file");
     var root = try fs.openVolume();
 
@@ -36,13 +37,11 @@ pub fn main() uefi.Error!void {
     // determine file size
     _ = try printUtf16(con_out, "Determine kernel file size");
     var file_info_buffer: [128]u8 align(@alignOf(uefi.protocol.File.Info)) = undefined;
-    // var info_size: usize = file_info_buffer.len;
 
     _ = try kernel_file.getInfo(
         .file,
         &file_info_buffer
     );
-    // if (status != .Success) { return uefi.Error; }
 
     const file_info = @as(*uefi.protocol.File.Info, @ptrCast(&file_info_buffer));
     const kernel_size = file_info.file.size;
@@ -55,7 +54,6 @@ pub fn main() uefi.Error!void {
         .loader_data,
         pages,
     );
-    //const kernel_buffer_addr = @intFromPtr(kernel_buffer.ptr);
     const buffer_as_bytes = std.mem.sliceAsBytes(kernel_buffer);
 
     // get gop
@@ -85,6 +83,7 @@ pub fn main() uefi.Error!void {
     const entry_point: KernelEntry = @ptrCast(kernel_buffer.ptr);
 
     _ = try printUtf16(con_out, "Jumping to kernel entry point");
+    boot_services.exitBootServices(uefi.handle, "a");
     entry_point(&params); // Bye UEFI, I will miss you :(
     return;
 }
