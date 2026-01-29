@@ -1,4 +1,6 @@
 # zboot
+> [!CAUTION]
+> This bootloader is still in heavy development, not even really usable. I would heavily advise against the practical use of this bootloader at the current time.
 
 ## License
 ```
